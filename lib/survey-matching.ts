@@ -18,7 +18,19 @@ export function decodeSurveyAnswers(raw: string | null): SurveyAnswer[] {
         ['agree', 'neutral', 'disagree'].includes(item.answer)
     )
   } catch {
-    return []
+    try {
+      const parsed = JSON.parse(decodeURIComponent(raw))
+      if (!Array.isArray(parsed)) return []
+
+      return parsed.filter(
+        (item): item is SurveyAnswer =>
+          item &&
+          typeof item.questionId === 'string' &&
+          ['agree', 'neutral', 'disagree'].includes(item.answer)
+      )
+    } catch {
+      return []
+    }
   }
 }
 

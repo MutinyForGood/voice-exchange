@@ -16,19 +16,26 @@ export function LoginClient() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/admin`,
-      },
-    })
-    if (error) {
-      setError(error.message)
-    } else {
-      setSent(true)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/admin`,
+        },
+      })
+      if (error) {
+        setError(error.message)
+      } else {
+        setSent(true)
+      }
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : 'We could not send the magic link.'
+      )
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   if (sent) {

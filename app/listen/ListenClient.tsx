@@ -4,7 +4,6 @@ import { useState, useCallback } from 'react'
 import { AudioPlayer } from '@/components/AudioPlayer'
 import { Button } from '@/components/Button'
 import { ListenMatchSummary, SurveyAnswer } from '@/types'
-import { encodeSurveyAnswers } from '@/lib/survey-matching'
 import { QUESTIONS } from '@/lib/questions'
 
 interface NoteData {
@@ -31,7 +30,7 @@ export function ListenClient() {
 
       if (excludeId) query.set('exclude', excludeId)
       if (surveyAnswers.length > 0) {
-        query.set('answers', encodeSurveyAnswers(surveyAnswers))
+        query.set('answers', JSON.stringify(surveyAnswers))
       }
 
       const url = query.toString() ? `/api/listen?${query}` : '/api/listen'
@@ -45,8 +44,8 @@ export function ListenClient() {
       const data = await res.json()
       setNote(data)
       setUsedMatching(Array.isArray(data.matchedOnOpposites) && data.matchedOnOpposites.length > 0)
-    } catch {
-      setError('Something went wrong loading a voice note.')
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Something went wrong loading a voice note.')
     } finally {
       setLoading(false)
     }

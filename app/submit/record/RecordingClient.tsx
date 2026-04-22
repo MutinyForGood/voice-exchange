@@ -189,13 +189,16 @@ export function RecordingClient() {
         }),
       })
 
-      if (!res.ok) throw new Error('Submission failed')
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null)
+        throw new Error(payload?.error || 'Submission failed')
+      }
 
       sessionStorage.removeItem('surveyAnswers')
-      router.push('/submit/done')
+      window.location.assign('/submit/done')
     } catch (err) {
       console.error(err)
-      setError('Something went wrong. Please try again.')
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
       setStage('preview')
     }
   }
