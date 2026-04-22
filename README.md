@@ -62,3 +62,4 @@ In the Supabase SQL Editor, run `supabase/seed.sql` to insert 3 approved test su
 | `/admin/login` | Admin magic link login |
 | `/admin` | Moderation dashboard |
 
+
