@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import {
-  buildOppositionSummary,
-  decodeSurveyAnswers,
-} from '@/lib/survey-matching'
-import { Submission } from '@/types'
 
 export async function GET(req: NextRequest) {
   try {
     const excludeId = req.nextUrl.searchParams.get('exclude')
-    const listenerAnswers = decodeSurveyAnswers(req.nextUrl.searchParams.get('answers'))
     const supabase = createServiceClient()
 
     let query = supabase
@@ -25,42 +19,26 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No approved submissions' }, { status: 404 })
     }
 
-    const oppositeMatches =
-      listenerAnswers.length > 0
-        ? data
-            .map((submission: Pick<Submission, 'survey_answers'> & Record<string, any>) => ({
-              submission,
-              opposition: buildOppositionSummary(listenerAnswers, submission.survey_answers),
-            }))
-            .filter((entry: { opposition: unknown[] }) => entry.opposition.length > 0)
-        : []
+    const shuffled = [...data].sort(() => Math.random() - 0.5)
 
-    const candidates =
-      oppositeMatches.length > 0
-        ? oppositeMatches
-        : data.map((submission: Pick<Submission, 'survey_answers'> & Record<string, any>) => ({
-            submission,
-            opposition: [],
-          }))
-
-    for (const candidate of candidates) {
+    for (const submission of shuffled) {
       const { data: signedData, error: signedError } = await supabase.storage
         .from('voice-notes')
-        .createSignedUrl(candidate.submission.audio_path, 3600)
+        .createSignedUrl(submission.audio_path, 3600)
 
       if (signedError || !signedData?.signedUrl) {
         console.error('listen signed url error', {
-          submissionId: candidate.submission.id,
-          audioPath: candidate.submission.audio_path,
+          submissionId: submission.id,
+          audioPath: submission.audio_path,
           message: signedError?.message,
         })
         continue
       }
 
       return NextResponse.json({
-        ...candidate.submission,
+        ...submission,
         audioUrl: signedData.signedUrl,
-        matchedOnOpposites: candidate.opposition,
+        matchedOnOpposites: [],
       })
     }
 
