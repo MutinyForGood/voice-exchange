@@ -29,7 +29,11 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim())
+
+  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
 
   if (!user || !adminEmails.includes(user.email ?? '')) {
     return NextResponse.redirect(new URL('/admin/login', request.url))

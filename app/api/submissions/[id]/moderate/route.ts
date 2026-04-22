@@ -10,7 +10,11 @@ export async function POST(
   const {
     data: { user },
   } = await supabaseAuth.auth.getUser()
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim())
+  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+
   if (!user || !adminEmails.includes(user.email ?? '')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

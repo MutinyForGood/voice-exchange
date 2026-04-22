@@ -43,3 +43,9 @@ export function checkFlags(transcript: string): ModerationFlag[] {
   }
   return flags
 }
+
+const BLOCKING_RULES = new Set(['profanity', 'slur', 'harassment', 'violent_threat'])
+
+export function hasBlockingFlags(flags: ModerationFlag[]) {
+  return flags.some((flag) => BLOCKING_RULES.has(flag.rule))
+}

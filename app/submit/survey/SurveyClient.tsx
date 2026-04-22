@@ -66,7 +66,7 @@ export function SurveyClient() {
         </div>
 
         <Button onClick={handleNext} disabled={!selected} className="w-full py-3">
-          {step < QUESTIONS.length - 1 ? 'Next' : 'Continue to recording'}
+          {step < QUESTIONS.length - 1 ? 'Next question' : 'Continue to recording'}
         </Button>
       </div>
     </div>

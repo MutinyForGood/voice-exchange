@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { checkFlags } from '@/lib/moderation/flags'
+import { checkFlags, hasBlockingFlags } from '@/lib/moderation/flags'
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
@@ -11,6 +11,17 @@ export async function POST(req: NextRequest) {
   }
 
   const flags = transcript ? checkFlags(transcript) : []
+  if (hasBlockingFlags(flags)) {
+    return NextResponse.json(
+      {
+        error:
+          'This recording contains language that is automatically blocked. Please re-record without profanity, slurs, threats, or harassment.',
+        flags,
+      },
+      { status: 400 }
+    )
+  }
+
   const supabase = createServiceClient()
 
   const { data, error } = await supabase

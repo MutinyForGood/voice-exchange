@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/Button'
 import { AudioPlayer } from '@/components/AudioPlayer'
 import { createClient } from '@/lib/supabase/client'
+import { checkFlags, hasBlockingFlags } from '@/lib/moderation/flags'
 
 const MAX_SECONDS = 60
 
@@ -25,6 +26,9 @@ export function RecordingClient() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [transcript, setTranscript] = useState('')
   const [speechAvailable, setSpeechAvailable] = useState(false)
+  const [commonGroundPrompt, setCommonGroundPrompt] = useState(
+    'Speak to someone who answered differently than you. What do you wish they understood about your perspective, and where do you think you might still find common ground?'
+  )
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<BlobEvent['data'][]>([])
@@ -35,6 +39,28 @@ export function RecordingClient() {
   useEffect(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     setSpeechAvailable(!!SR)
+  }, [])
+
+  useEffect(() => {
+    const storedAnswers = sessionStorage.getItem('surveyAnswers')
+    if (!storedAnswers) return
+
+    try {
+      const answers = JSON.parse(storedAnswers) as { answer: string }[]
+      const agreeCount = answers.filter((answer) => answer.answer === 'agree').length
+      const disagreeCount = answers.filter((answer) => answer.answer === 'disagree').length
+
+      if (agreeCount === disagreeCount) {
+        setCommonGroundPrompt(
+          'Speak to someone who answered differently than you. What would surprise them about you, and where do you think the two of you might still agree?'
+        )
+        return
+      }
+
+      setCommonGroundPrompt(
+        'Speak to someone on the other side of these questions. Share your honest take, but try to name one value or experience you think you might still have in common.'
+      )
+    } catch {}
   }, [])
 
   const startRecording = async () => {
@@ -128,6 +154,15 @@ export function RecordingClient() {
 
     setStage('submitting')
     try {
+      const flags = transcript ? checkFlags(transcript) : []
+      if (hasBlockingFlags(flags)) {
+        setError(
+          'This draft uses language we automatically block. Please re-record without profanity, slurs, threats, or harassment.'
+        )
+        setStage('preview')
+        return
+      }
+
       const supabase = createClient()
       const fileName = `audio/${Date.now()}.webm`
 
@@ -170,7 +205,11 @@ export function RecordingClient() {
       <div className="w-full max-w-md">
         <h1 className="mb-2 text-2xl font-bold">Record your voice note</h1>
         <p className="mb-8 text-sm text-zinc-500">
-          Speak directly to someone who sees things differently. Max 60 seconds.
+          {commonGroundPrompt}
+        </p>
+        <p className="mb-8 text-xs text-zinc-400">
+          Keep it respectful. Recordings with profanity, slurs, threats, or harassment
+          are blocked before submission.
         </p>
 
         {error && (
@@ -206,21 +245,6 @@ export function RecordingClient() {
         {stage === 'preview' && audioUrl && (
           <div>
             <AudioPlayer src={audioUrl} label="Your recording" />
-
-            <div className="mt-6">
-              <label className="mb-2 block text-sm font-medium">
-                Transcript
-                {speechAvailable
-                  ? ' (auto-generated — edit if needed)'
-                  : ' (type what you said to help with review)'}
-              </label>
-              <textarea
-                value={transcript}
-                onChange={(e) => setTranscript(e.target.value)}
-                className="h-28 w-full resize-none rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:ring-2 focus:ring-zinc-900 focus:outline-none"
-                placeholder={speechAvailable ? '' : 'Optional but helpful for moderation...'}
-              />
-            </div>
 
             <div className="mt-6 flex gap-3">
               <Button variant="secondary" onClick={discard} className="flex-1 py-3">

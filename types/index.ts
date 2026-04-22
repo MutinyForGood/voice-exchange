@@ -10,6 +10,12 @@ export interface ModerationFlag {
   matchedText: string
 }
 
+export interface ListenMatchSummary {
+  questionId: string
+  yourAnswer: SurveyAnswer['answer']
+  theirAnswer: SurveyAnswer['answer']
+}
+
 export interface Submission {
   id: string
   created_at: string
